@@ -7,3 +7,12 @@ Primer Proyecto: Machine Learning.
 En este primera entrega, vamos a implementar algoritmos de clasificacion como el KNN, el naıve Bayes, perceptrones y redes neuronales, y aplicaremos estos modelos para diversas tareas de clasificacion e identificacion de lenguajes.
 Ingresar al sitio del proyecto Machine Learning, y asegurarse de leer las especificaciones
 https://inst.eecs.berkeley.edu/~cs188/sp25/projects/proj5/#question-3-6-points-digit-classification.
+
+
+
+En el caso de correr un entorno virtual 
+.venv\Scripts\activate
+
+pip install pytorch
+pip install numpy
+pip install matplotlib
