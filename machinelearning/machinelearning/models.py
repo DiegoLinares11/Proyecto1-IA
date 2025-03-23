@@ -279,8 +279,9 @@ class LanguageIDModel(Module):
         "*** YOUR CODE HERE ***"
         self.num_epochs=10
 
-        self.fc1 = Linear(self.num_chars, 128)
-        self.fc2 = Linear(128, len(self.languages))
+        self.fc1 = Linear(self.num_chars, 256)
+        self.fc2 = Linear(256, 128)
+        self.fc3 = Linear(128, len(self.languages))
 
     def run(self, xs):
         """
@@ -314,10 +315,10 @@ class LanguageIDModel(Module):
         "*** YOUR CODE HERE ***"
         xs = torch.stack(tuple(xs), dim=1).sum(dim=1)  # shape: (batch_size, L * self.num_chars)
 
-        hidden = self.fc1(xs)
-        hidden = torch.relu(hidden)
+        hidden = torch.relu(self.fc1(xs))
+        hidden = torch.relu(self.fc2(hidden))
 
-        output = self.fc2(hidden)
+        output = self.fc3(hidden)
 
         return output
 
@@ -339,11 +340,7 @@ class LanguageIDModel(Module):
         "*** YOUR CODE HERE ***"
         language_scores = self.run(xs)
 
-        probs = softmax(language_scores, dim=1)
-
-        log_probs = torch.log(probs)
-
-        loss = -torch.sum(y * log_probs) / xs[0].size(0)
+        loss = cross_entropy(language_scores, torch.argmax(y, dim=1))
 
         return loss
         
@@ -362,9 +359,9 @@ class LanguageIDModel(Module):
         For more information, look at the pytorch documentation of torch.movedim()
         """
         "*** YOUR CODE HERE ***"
-        optimizer = optim.Adam(self.parameters(), lr=0.001)
+        optimizer = optim.Adam(self.parameters(), lr=0.005)
 
-        dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+        dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
 
         for epoch in range(self.num_epochs):
             for batch in dataloader:
