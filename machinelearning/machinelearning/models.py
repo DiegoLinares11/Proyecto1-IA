@@ -278,10 +278,25 @@ class LanguageIDModel(Module):
         super(LanguageIDModel, self).__init__()
         "*** YOUR CODE HERE ***"
         self.num_epochs=10
+        self.embedding_dim = 64
+        self.hidden_size=128
+        self.num_layers=2
 
-        self.fc1 = Linear(self.num_chars, 256)
-        self.fc2 = Linear(256, 128)
-        self.fc3 = Linear(128, len(self.languages))
+        self.embedding = Linear(self.num_chars, self.embedding_dim)
+
+        self.lstm = torch.nn.LSTM(input_size=self.embedding_dim,
+                                  hidden_size=self.hidden_size,
+                                  num_layers=self.num_layers,
+                                  batch_first=True,
+                                  bidirectional=True)
+
+
+        self.fc = torch.nn.Sequential(
+                    Linear(self.hidden_size * 2, 128),
+                    torch.nn.ReLU(),
+                    torch.nn.Dropout(0.3),
+                    Linear(128, len(self.languages))
+                )
 
     def run(self, xs):
         """
@@ -313,12 +328,19 @@ class LanguageIDModel(Module):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
-        xs = torch.stack(tuple(xs), dim=1).sum(dim=1)  # shape: (batch_size, L * self.num_chars)
+        xs = [x.squeeze() if x.dim() > 2 else x for x in xs]
 
-        hidden = torch.relu(self.fc1(xs))
-        hidden = torch.relu(self.fc2(hidden))
+    # Convertir xs en un solo tensor con dimensiones correctas
+        xs = torch.stack(xs, dim=1)  # (batch_size, L, num_chars)
 
-        output = self.fc3(hidden)
+    # Pasar por la red LSTM
+        xs = self.embedding(xs)  # (batch_size, L, embedding_dim)
+        _, (hn, _) = self.lstm(xs)
+    
+    # Ajustar las dimensiones de la salida de LSTM
+        hn = hn.view(self.num_layers, 2, xs.shape[0], self.hidden_size)
+        hn = torch.cat((hn[-1, 0], hn[-1, 1]), dim=1)  # Concatenar direcciones
+        output = self.fc(hn)
 
         return output
 
@@ -340,7 +362,16 @@ class LanguageIDModel(Module):
         "*** YOUR CODE HERE ***"
         language_scores = self.run(xs)
 
-        loss = cross_entropy(language_scores, torch.argmax(y, dim=1))
+    # Asegurar que los scores tengan gradientes
+        if not language_scores.requires_grad:
+            language_scores.retain_grad()
+
+        y = y.squeeze(dim=1)
+
+        target = torch.argmax(y, dim=1).long()
+
+        log_probs = torch.nn.functional.log_softmax(language_scores, dim=1)
+        loss = -torch.mean(torch.gather(log_probs, 1, target.view(-1, 1)))
 
         return loss
         
@@ -359,9 +390,9 @@ class LanguageIDModel(Module):
         For more information, look at the pytorch documentation of torch.movedim()
         """
         "*** YOUR CODE HERE ***"
-        optimizer = optim.Adam(self.parameters(), lr=0.005)
+        optimizer = optim.Adam(self.parameters(), lr=0.003)
 
-        dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
+        dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
 
         for epoch in range(self.num_epochs):
             for batch in dataloader:
