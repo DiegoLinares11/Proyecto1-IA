@@ -277,7 +277,10 @@ class LanguageIDModel(Module):
         self.languages = ["English", "Spanish", "Finnish", "Dutch", "Polish"]
         super(LanguageIDModel, self).__init__()
         "*** YOUR CODE HERE ***"
+        self.num_epochs=10
 
+        self.fc1 = Linear(self.num_chars, 128)
+        self.fc2 = Linear(128, len(self.languages))
 
     def run(self, xs):
         """
@@ -309,6 +312,14 @@ class LanguageIDModel(Module):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
+        xs = torch.stack(tuple(xs), dim=1).sum(dim=1)  # shape: (batch_size, L * self.num_chars)
+
+        hidden = self.fc1(xs)
+        hidden = torch.relu(hidden)
+
+        output = self.fc2(hidden)
+
+        return output
 
     
     def get_loss(self, xs, y):
@@ -326,8 +337,16 @@ class LanguageIDModel(Module):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
-        
+        language_scores = self.run(xs)
 
+        probs = softmax(language_scores, dim=1)
+
+        log_probs = torch.log(probs)
+
+        loss = -torch.sum(y * log_probs) / xs[0].size(0)
+
+        return loss
+        
     def train(self, dataset):
         """
         Trains the model.
@@ -343,8 +362,25 @@ class LanguageIDModel(Module):
         For more information, look at the pytorch documentation of torch.movedim()
         """
         "*** YOUR CODE HERE ***"
+        optimizer = optim.Adam(self.parameters(), lr=0.001)
 
-        
+        dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+
+        for epoch in range(self.num_epochs):
+            for batch in dataloader:
+                xs, y = batch
+
+                xs = movedim(xs, 0, 1)
+
+                optimizer.zero_grad()
+
+                loss = self.get_loss(xs, y)
+
+                loss.backward()
+
+                optimizer.step()
+                
+                print(f"Epoch [{epoch+1}/{self.num_epochs}], Loss: {loss.item():.4f}")
 
 def Convolve(input: tensor, weight: tensor):
     """
