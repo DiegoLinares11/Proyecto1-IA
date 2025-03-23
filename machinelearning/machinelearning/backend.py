@@ -425,13 +425,11 @@ alphabet above have been substituted with ASCII symbols.""".strip())
         return all_predicted_probs, all_predicted, all_correct
 
     def __getitem__(self, idx):
-
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        
         ret = self._encode(self.train_x[idx:idx+1], self.train_y[idx:idx+1])
-        return {'x': torch.squeeze(ret[0]), 'label': torch.squeeze(ret[1])}
+        return ret[0], ret[1] # Devuelve una tupla directamente
 
     def get_validation_accuracy(self):
         dev_predicted_probs, dev_predicted, dev_correct = self._predict()

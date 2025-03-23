@@ -380,7 +380,7 @@ class LanguageIDModel(Module):
 
                 optimizer.step()
                 
-                print(f"Epoch [{epoch+1}/{self.num_epochs}], Loss: {loss.item():.4f}")
+                #print(f"Epoch [{epoch+1}/{self.num_epochs}], Loss: {loss.item():.4f}")
 
 def Convolve(input: tensor, weight: tensor):
     """
