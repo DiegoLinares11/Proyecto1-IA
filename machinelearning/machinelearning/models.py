@@ -139,7 +139,8 @@ class RegressionModel(Module):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
         super().__init__()
-
+        self.layer1 = Linear(1, 128)
+        self.layer2 = Linear(128, 1)
 
 
     def forward(self, x):
@@ -152,7 +153,8 @@ class RegressionModel(Module):
             A node with shape (batch_size x 1) containing predicted y-values
         """
         "*** YOUR CODE HERE ***"
-
+        x = relu(self.layer1(x))
+        return self.layer2(x)
     
     def get_loss(self, x, y):
         """
@@ -165,6 +167,8 @@ class RegressionModel(Module):
         Returns: a tensor of size 1 containing the loss
         """
         "*** YOUR CODE HERE ***"
+        pred = self.forward(x)
+        return mse_loss(pred, y)
  
         
 
@@ -183,6 +187,18 @@ class RegressionModel(Module):
             
         """
         "*** YOUR CODE HERE ***"
+        batch_size = 32
+        data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        optimizer = optim.Adam(self.parameters(), lr=0.001)
+
+        for epoch in range(500): 
+            for batch in data_loader:
+                x = batch['x']
+                y = batch['label']
+                optimizer.zero_grad()
+                loss = self.get_loss(x, y)
+                loss.backward()
+                optimizer.step()
 
             
 
